@@ -1,0 +1,7 @@
+# Runtime support for ARM Cortex-A (AArch64)
+
+## Examples
+
+The command `cargo run --example NAME` executes an example using QEMU with remote debugging enabled.
+QEMU will freeze the machine at startup and wait for a GDB connection.
+After starting the application connect to QEMU in a GDB shell with `target remote :3333`.

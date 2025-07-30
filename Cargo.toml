@@ -1,0 +1,3 @@
+[workspace]
+members = ["cortex-a-rt"]
+resolver = "2"
