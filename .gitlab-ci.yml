@@ -1,0 +1,18 @@
+stages:
+  - check
+  - build
+  - test
+
+include:
+  # Check
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/check-issue@~latest
+  - component: $CI_SERVER_FQDN/eng/toolchain/rust/rust-ci/check-commits@main
+  - component: $CI_SERVER_FQDN/eng/toolchain/rust/rust-ci/run-clippy-fmt@main
+    inputs:
+      anod_install_options: --target=aarch64-elf
+      anod_printenv_options: --target=aarch64-elf
+
+  # Build
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
+    inputs:
+      anod-args: run build

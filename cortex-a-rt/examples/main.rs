@@ -14,6 +14,7 @@ fn main() -> ! {
     let _y = &raw const BSS;
     let _z = &raw const DATA;
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
