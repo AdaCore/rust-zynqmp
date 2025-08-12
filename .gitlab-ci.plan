@@ -1,0 +1,5 @@
+def build():
+    anod_install("rust")
+    anod_install("rust", target="aarch64-elf")
+    anod_build("rust-multi", target="aarch64-elf")
+    anod_build("rust-zynqmp-bsp", target="aarch64-elf")

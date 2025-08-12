@@ -1,6 +1,0 @@
-[target.aarch64-unknown-none]
-runner = "qemu-system-aarch64 -cpu cortex-a53 -machine xlnx-zcu102 -m 2G -gdb tcp::3333 -S -nographic -semihosting-config enable=on,target=native -kernel"
-rustflags = ["-C", "link-arg=-Tlink.x"]
-
-[build]
-target = "aarch64-unknown-none"
