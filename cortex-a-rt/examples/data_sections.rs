@@ -3,8 +3,6 @@
 
 use qemu_exit::QEMUExit;
 
-extern crate cortex_a_rt;
-
 cortex_a_rt::entry!(main);
 
 static RODATA: &[u8] = b"Hello, world!";
@@ -22,10 +20,10 @@ fn main() -> ! {
         assert_eq!(*z, 1);
     }
 
-    qemu_exit::AArch64::new().exit_success();
+    qemu_exit::AArch64::new().exit_success()
 }
 
 #[panic_handler]
 fn panic(_panic: &core::panic::PanicInfo<'_>) -> ! {
-    qemu_exit::AArch64::new().exit_failure();
+    qemu_exit::AArch64::new().exit_failure()
 }
