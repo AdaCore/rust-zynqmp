@@ -4,6 +4,8 @@ use core::arch::global_asm;
 
 use aarch64_cpu::registers::{Writeable, *};
 
+pub mod uart;
+
 global_asm!(include_str!("start.S"));
 
 unsafe extern "C" {
