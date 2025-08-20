@@ -4,7 +4,7 @@
 // (https://docs.amd.com/v/u/en-US/ug1085-zynq-ultrascale-trm).
 
 use bitbybit::{bitenum, bitfield};
-use embedded_io::{ErrorType, Write, WriteReady};
+use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
 
 /// Representation of a UART device.
 ///
@@ -108,13 +108,15 @@ struct ChannelStatusRegister {
     #[bit(4, r)]
     tx_fifo_full: bool,
     #[bit(3, r)]
-    tx_empty: bool,
+    tx_fifo_empty: bool,
+    #[bit(1, r)]
+    rx_fifo_empty: bool,
 }
 
 #[bitfield(u32, default = 0)]
 struct FifoRegister {
     #[bits(0..=7, rw)]
-    fifo: u8,
+    data: u8,
 }
 
 /// Obtains a reference to the UART0 device.
@@ -187,6 +189,39 @@ impl ErrorType for MmioUart<'_> {
     type Error = core::convert::Infallible;
 }
 
+impl ReadReady for MmioUart<'_> {
+    fn read_ready(&mut self) -> Result<bool, Self::Error> {
+        Ok(!self.read_channel_status().rx_fifo_empty())
+    }
+}
+
+impl Read for MmioUart<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        // The implementation corresponds to Table 21-9 in the TRM, simplified
+        // because we don't use interrupts.
+
+        for (count, byte) in buf.iter_mut().enumerate() {
+            if !self.read_ready()? {
+                // The contract for this function says that we must not block
+                // if `ReadReady::read_ready` has returned true, so instead we
+                // have to stop receiving if the FIFO is empty after the first
+                // byte. In contrast, we need to block when we can't read the
+                // first byte because the contract requires us to block until
+                // we can receive at least one byte.
+                if count > 0 {
+                    return Ok(count);
+                } else {
+                    while !self.read_ready()? {}
+                }
+            }
+
+            *byte = self.read_tx_rx_fifo().data();
+        }
+
+        Ok(buf.len())
+    }
+}
+
 impl WriteReady for MmioUart<'_> {
     fn write_ready(&mut self) -> Result<bool, Self::Error> {
         Ok(!self.read_channel_status().tx_fifo_full())
@@ -213,7 +248,7 @@ impl Write for MmioUart<'_> {
                 }
             }
 
-            self.write_tx_rx_fifo(FifoRegister::builder().with_fifo(byte).build());
+            self.write_tx_rx_fifo(FifoRegister::builder().with_data(byte).build());
         }
 
         Ok(buf.len())
@@ -222,7 +257,7 @@ impl Write for MmioUart<'_> {
     fn flush(&mut self) -> Result<(), Self::Error> {
         loop {
             let status = self.read_channel_status();
-            if !status.tx_active() && status.tx_empty() {
+            if !status.tx_active() && status.tx_fifo_empty() {
                 break;
             }
         }
