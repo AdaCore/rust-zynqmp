@@ -4,6 +4,7 @@ use core::arch::global_asm;
 
 use aarch64_cpu::registers::{Writeable, *};
 
+mod mmu;
 pub mod uart;
 
 global_asm!(include_str!("start.S"));
@@ -21,6 +22,7 @@ unsafe extern "C" {
 extern "C" fn __start_rust() -> ! {
     set_exception_vector_table_el1();
     enable_fpu_el1();
+    mmu::enable();
     unsafe { __main() }
 }
 
