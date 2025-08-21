@@ -110,10 +110,7 @@ __start_el1:
     ldr     w0, [x2, x7, lsl #2]
     mov     sp, x0
 
-    bl      __set_exception_vector_table_el1
-    bl      __enable_fpu_el1
-
-    b __main
+    b       __start_rust
 
 .type __error, %function
 __error:
