@@ -2,7 +2,7 @@
 
 use core::arch::global_asm;
 
-use aarch64_cpu::registers::{Writeable, *};
+use aarch64_cpu::registers::{CPACR_EL1, VBAR_EL1, Writeable};
 
 mod mmu;
 pub mod uart;
