@@ -1,13 +1,6 @@
-.org 0
 .text
 
 .global __start
-.global __vectors
-
-.section .vectors, "a"
-
-__vectors:
-    b       __start
 
 .section .boot, "ax"
 

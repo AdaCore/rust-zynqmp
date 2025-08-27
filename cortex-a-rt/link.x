@@ -87,3 +87,9 @@ SECTIONS {
         *(.note .note*)
     }
 }
+
+/* Weak aliases for default exception handlers */
+PROVIDE(_sync_handler   = __default_handler);
+PROVIDE(_irq_handler    = __default_handler);
+PROVIDE(_fiq_handler    = __default_handler);
+PROVIDE(_serror_handler = __default_handler);
