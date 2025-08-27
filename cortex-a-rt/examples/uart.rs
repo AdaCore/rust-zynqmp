@@ -9,6 +9,7 @@ cortex_a_rt::entry!(main);
 fn main() -> ! {
     // SAFETY: Nobody else is going to access UART0.
     let mut uart = unsafe { cortex_a_rt::uart::uart0() };
+    uart.initialize();
     writeln!(uart, "Hello world, the answer is {}!", 42).unwrap();
     panic!("{} went (intentionally) wrong", "Something");
 }
