@@ -12,7 +12,7 @@ use arm_gic::{
     },
     irq_enable,
 };
-use embedded_io::Write;
+use cortex_a_rt::uart::Write;
 use qemu_exit::QEMUExit;
 
 cortex_a_rt::entry!(main);

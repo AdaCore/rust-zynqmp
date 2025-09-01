@@ -4,7 +4,7 @@
 // (https://docs.amd.com/v/u/en-US/ug1085-zynq-ultrascale-trm).
 
 use bitbybit::{bitenum, bitfield};
-use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
+pub use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
 
 /// Representation of a UART device.
 ///
@@ -157,6 +157,8 @@ impl MmioUart<'_> {
             if !control.transmit_reset() && !control.receive_reset() {
                 break;
             }
+
+            core::hint::spin_loop();
         }
 
         // Enable the device by clearing the "disable" bits, but leave the
@@ -211,7 +213,9 @@ impl Read for MmioUart<'_> {
                 if count > 0 {
                     return Ok(count);
                 } else {
-                    while !self.read_ready()? {}
+                    while !self.read_ready()? {
+                        core::hint::spin_loop();
+                    }
                 }
             }
 
@@ -244,7 +248,9 @@ impl Write for MmioUart<'_> {
                 if count > 0 {
                     return Ok(count);
                 } else {
-                    while !self.write_ready()? {}
+                    while !self.write_ready()? {
+                        core::hint::spin_loop();
+                    }
                 }
             }
 
@@ -260,6 +266,8 @@ impl Write for MmioUart<'_> {
             if !status.tx_active() && status.tx_fifo_empty() {
                 break;
             }
+
+            core::hint::spin_loop();
         }
 
         Ok(())

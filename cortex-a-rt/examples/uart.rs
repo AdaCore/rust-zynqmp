@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_io::Write;
+use cortex_a_rt::uart::Write;
 use qemu_exit::QEMUExit;
 
 cortex_a_rt::entry!(main);
