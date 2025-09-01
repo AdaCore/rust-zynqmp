@@ -1,5 +1,5 @@
 [package]
-name = "cortex-a-rt"
+name = "zynqmp"
 version = "0.1.0"
 edition = "2024"
 

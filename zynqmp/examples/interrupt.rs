@@ -12,10 +12,10 @@ use arm_gic::{
     },
     irq_enable,
 };
-use cortex_a_rt::uart::Write;
 use qemu_exit::QEMUExit;
+use zynqmp::uart::Write;
 
-cortex_a_rt::entry!(main);
+zynqmp::entry!(main);
 
 static G: AtomicU8 = AtomicU8::new(0);
 
@@ -90,7 +90,7 @@ extern "C" fn _irq_handler() {
 
 #[panic_handler]
 fn panic(panic: &core::panic::PanicInfo<'_>) -> ! {
-    let mut uart = unsafe { cortex_a_rt::uart::uart0() };
+    let mut uart = unsafe { zynqmp::uart::uart0() };
     uart.initialize();
     writeln!(uart, "Panic: {}", panic.message()).unwrap();
     qemu_exit::AArch64::new().exit_failure();

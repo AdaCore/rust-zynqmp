@@ -143,19 +143,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
-name = "cortex-a-rt"
-version = "0.1.0"
-dependencies = [
- "aarch64-cpu",
- "arbitrary-int",
- "arm-gic",
- "bitbybit",
- "derive-mmio",
- "embedded-io",
- "qemu-exit",
-]
-
-[[package]]
 name = "derive-mmio"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -409,4 +396,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zynqmp"
+version = "0.1.0"
+dependencies = [
+ "aarch64-cpu",
+ "arbitrary-int",
+ "arm-gic",
+ "bitbybit",
+ "derive-mmio",
+ "embedded-io",
+ "qemu-exit",
 ]
