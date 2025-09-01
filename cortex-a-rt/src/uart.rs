@@ -4,7 +4,7 @@
 // (https://docs.amd.com/v/u/en-US/ug1085-zynq-ultrascale-trm).
 
 use bitbybit::{bitenum, bitfield};
-use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
+pub use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
 
 /// Representation of a UART device.
 ///
