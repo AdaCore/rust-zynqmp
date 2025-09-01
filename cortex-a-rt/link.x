@@ -11,6 +11,10 @@ Based upon the linker script from https://github.com/rust-embedded/cortex-ar/cor
 INCLUDE memory.x
 
 _DEFAULT_STACK_SIZE = (8 * 1024 * 1024);
+_DEFAULT_HEAP_SIZE = (32 * 1024 * 1024);
+
+__stack_size = DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
+__heap_size = DEFINED (__heap_size) ? __heap_size : _DEFAULT_HEAP_SIZE;
 
 SECTIONS {
     .text : {
@@ -49,7 +53,7 @@ SECTIONS {
         __sstack = .;
 
         __sstack0 = .;
-        . += DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
+        . += __stack_size;
         . = ALIGN(0x1000);
         __estack0 = .;
 
@@ -57,7 +61,7 @@ SECTIONS {
         . = . + 0x1000;
 
         __sstack1 = .;
-        . += DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
+        . += __stack_size;
         . = ALIGN(0x1000);
         __estack1 = .;
 
@@ -65,7 +69,7 @@ SECTIONS {
         . = . + 0x1000;
 
         __sstack2 = .;
-        . += DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
+        . += __stack_size;
         . = ALIGN(0x1000);
         __estack2 = .;
 
@@ -73,7 +77,7 @@ SECTIONS {
         . = . + 0x1000;
 
         __sstack3 = .;
-        . += DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
+        . += __stack_size;
         . = ALIGN(0x1000);
         __estack3 = .;
 
@@ -81,6 +85,13 @@ SECTIONS {
 
         /* Guard page */
         . = . + 0x1000;
+    } > DATA
+
+    .heap (NOLOAD) : ALIGN(0x1000) {
+        __sheap = .;
+        . += __heap_size;
+        . = ALIGN(0x1000);
+        __eheap = .;
     } > DATA
 
     /DISCARD/ : {

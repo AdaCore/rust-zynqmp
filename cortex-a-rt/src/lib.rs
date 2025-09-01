@@ -4,7 +4,9 @@ use core::arch::global_asm;
 
 use aarch64_cpu::registers::{CPACR_EL1, VBAR_EL1, Writeable};
 
+mod crl_apb;
 mod mmu;
+mod newlib;
 pub mod uart;
 
 global_asm!(include_str!("vectors.S"));
