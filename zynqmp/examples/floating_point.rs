@@ -3,7 +3,7 @@
 
 use qemu_exit::QEMUExit;
 
-cortex_a_rt::entry!(main);
+zynqmp::entry!(main);
 
 fn main() -> ! {
     let mut x = 1.0;

@@ -3,7 +3,7 @@
 
 use qemu_exit::QEMUExit;
 
-cortex_a_rt::entry!(main);
+zynqmp::entry!(main);
 
 static RODATA: &[u8] = b"Hello, world!";
 static mut BSS: u8 = 0;

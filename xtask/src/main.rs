@@ -106,7 +106,7 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
         print!("test {example} ... ");
 
         let status = process::Command::new(&cargo)
-            .current_dir("cortex-a-rt")
+            .current_dir("zynqmp")
             .arg("run")
             .arg("--target")
             .arg("aarch64-unknown-none")
