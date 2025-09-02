@@ -128,9 +128,7 @@ struct FifoRegister {
 pub unsafe fn uart0() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.
-    let mut uart = unsafe { Uart::new_mmio_at(0xff00_0000) };
-    uart.initialize();
-    uart
+    unsafe { Uart::new_mmio_at(0xff00_0000) }
 }
 
 /// Obtains a reference to the UART1 device.
@@ -142,14 +140,12 @@ pub unsafe fn uart0() -> MmioUart<'static> {
 pub unsafe fn uart1() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.
-    let mut uart = unsafe { Uart::new_mmio_at(0xff01_0000) };
-    uart.initialize();
-    uart
+    unsafe { Uart::new_mmio_at(0xff01_0000) }
 }
 
 impl MmioUart<'_> {
     /// Initializes the device according to Table 21-5 of the TRM.
-    fn initialize(&mut self) {
+    pub fn initialize(&mut self) {
         // Reset the device and wait for the reset to complete.
         self.modify_control(|control| control.with_transmit_reset(true).with_receive_reset(true));
         loop {

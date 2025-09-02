@@ -91,6 +91,7 @@ extern "C" fn _irq_handler() {
 #[panic_handler]
 fn panic(panic: &core::panic::PanicInfo<'_>) -> ! {
     let mut uart = unsafe { cortex_a_rt::uart::uart0() };
+    uart.initialize();
     writeln!(uart, "Panic: {}", panic.message()).unwrap();
     qemu_exit::AArch64::new().exit_failure();
 }
