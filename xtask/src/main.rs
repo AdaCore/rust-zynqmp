@@ -1,8 +1,21 @@
 #![warn(clippy::pedantic)]
 
-use std::{env, error, fs, io::Write, path, process};
+use std::{env, error, fs, io::Write, path, process, time};
 
 use clap::{Parser, Subcommand};
+use wait_timeout::ChildExt;
+
+const TIMEOUT: time::Duration = time::Duration::from_secs(10);
+const RUNNERS: [(&str, &str); 2] = [
+    (
+        "started_at_EL1",
+        "qemu-system-aarch64 -machine xlnx-zcu102 -m 2G -nographic -semihosting-config enable=on,target=native -kernel",
+    ),
+    (
+        "started_at_EL3",
+        "qemu-system-aarch64 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -semihosting-config enable=on,target=native -kernel",
+    ),
+];
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -103,27 +116,45 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     log_file.start_test_suite(examples.len())?;
 
     for example in examples {
-        print!("test {example} ... ");
+        for (variant, runner) in RUNNERS {
+            print!("test {example} ({variant}) ... ");
 
-        let status = process::Command::new(&cargo)
-            .current_dir("zynqmp")
-            .arg("run")
-            .arg("--target")
-            .arg("aarch64-unknown-none")
-            .arg("--example")
-            .arg(example)
-            .status()
-            .expect("failed to execute example");
+            let mut child = process::Command::new(&cargo)
+                .arg("run")
+                .arg("--target")
+                .arg("aarch64-unknown-none")
+                .arg("--example")
+                .arg(example)
+                .current_dir("zynqmp")
+                .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+                .spawn()
+                .expect("failed to spawn example");
 
-        if status.success() {
-            println!("ok");
-            num_passed += 1;
-        } else {
-            println!("FAILED");
-            num_failed += 1;
+            let mut timeout = false;
+            let status = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
+                status
+            } else {
+                timeout = true;
+                child.kill().expect("failed to kill example");
+                child.wait().expect("failed to wait for example")
+            };
+
+            if status.success() {
+                println!("ok");
+                num_passed += 1;
+            } else {
+                let reason = if let Some(code) = status.code() {
+                    format!("exit code {code}")
+                } else {
+                    (if timeout { "timeout" } else { "terminated" }).to_string()
+                };
+                println!("FAILED ({reason})");
+                num_failed += 1;
+            }
+
+            log_file
+                .add_test_result(&format!("[example] {example}#{variant}"), status.success())?;
         }
-
-        log_file.add_test_result(example, status.success())?;
     }
 
     println!(

@@ -9,9 +9,14 @@ include:
   - component: $CI_SERVER_FQDN/eng/toolchain/rust/rust-ci/check-commits@main
   - component: $CI_SERVER_FQDN/eng/toolchain/rust/rust-ci/run-clippy-fmt@main
     inputs:
+      job-name: clippy-fmt:zynqmp
       anod_install_options: --target=aarch64-elf
       anod_printenv_options: --target=aarch64-elf
-      clippy_options: --all-targets --no-deps --workspace --target aarch64-unknown-none
+      clippy_options: --all-targets --no-deps --manifest-path zynqmp/Cargo.toml --target aarch64-unknown-none
+  - component: $CI_SERVER_FQDN/eng/toolchain/rust/rust-ci/run-clippy-fmt@main
+    inputs:
+      job-name: clippy-fmt:xtask
+      clippy_options: --all-targets --no-deps --manifest-path xtask/Cargo.toml
 
   # Build
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
