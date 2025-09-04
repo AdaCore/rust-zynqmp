@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
+wait-timeout = "0.2.1"
