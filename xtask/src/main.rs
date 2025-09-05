@@ -9,11 +9,11 @@ const TIMEOUT: time::Duration = time::Duration::from_secs(10);
 const RUNNERS: [(&str, &str); 2] = [
     (
         "started_at_EL1",
-        "qemu-system-aarch64 -machine xlnx-zcu102 -m 2G -nographic -semihosting-config enable=on,target=native -kernel",
+        "qemu-system-aarch64 -machine xlnx-zcu102 -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel",
     ),
     (
         "started_at_EL3",
-        "qemu-system-aarch64 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -semihosting-config enable=on,target=native -kernel",
+        "qemu-system-aarch64 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel",
     ),
 ];
 
