@@ -6,7 +6,7 @@ use crate::{crl_apb, uart};
 
 /// Performs a soft reset.
 #[unsafe(no_mangle)]
-pub extern "C" fn _exit(_status: i32) -> *mut u8 {
+pub extern "C" fn _exit(_status: i32) -> ! {
     let mut crl_apb = crl_apb::crl_apb();
 
     crl_apb.modify_crl_wprot(|crl_wprot| crl_wprot.with_active(false));
@@ -14,6 +14,12 @@ pub extern "C" fn _exit(_status: i32) -> *mut u8 {
     loop {
         crl_apb.modify_reset_ctrl(|reset_ctrl| reset_ctrl.with_soft_reset(true));
     }
+}
+
+/// Performs a soft reset.
+#[unsafe(no_mangle)]
+pub extern "C" fn abort() -> ! {
+    _exit(-1)
 }
 
 /// Writes the given data to UART0 and returns the number of written bytes.
