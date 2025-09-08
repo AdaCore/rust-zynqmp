@@ -104,3 +104,6 @@ PROVIDE(_sync_handler   = __default_handler);
 PROVIDE(_irq_handler    = __default_handler);
 PROVIDE(_fiq_handler    = __default_handler);
 PROVIDE(_serror_handler = __default_handler);
+
+/* Weak alias for default exit handler */
+PROVIDE(_exit_handler   = __default_exit_handler);

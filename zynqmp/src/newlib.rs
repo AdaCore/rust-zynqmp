@@ -2,18 +2,12 @@ use core::sync::atomic::AtomicUsize;
 
 use embedded_io::Write;
 
-use crate::{crl_apb, uart};
+use crate::{soft_reset, uart};
 
 /// Performs a soft reset.
 #[unsafe(no_mangle)]
 pub extern "C" fn _exit(_status: i32) -> ! {
-    let mut crl_apb = crl_apb::crl_apb();
-
-    crl_apb.modify_crl_wprot(|crl_wprot| crl_wprot.with_active(false));
-
-    loop {
-        crl_apb.modify_reset_ctrl(|reset_ctrl| reset_ctrl.with_soft_reset(true));
-    }
+    soft_reset()
 }
 
 /// Performs a soft reset.

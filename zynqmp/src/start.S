@@ -51,7 +51,7 @@ __start:
     cbz     x7, __start_memory_init
 
     // Only single core supported
-    b       __error
+    b       _exit_handler
 
 __start_memory_init:
     // Copy .data
@@ -97,7 +97,7 @@ __start_el:
     beq     __start_el1
 
     // EL0 startup not supported
-    b       __error
+    b       _exit_handler
 
 .type __start_el3, %function
 __start_el3:
@@ -227,10 +227,6 @@ __start_el1:
     mov     sp, x0
 
     b       __start_rust
-
-.type __error, %function
-__error:
-    b       __error
 
 .type __system_stack_base, %object
 __system_stack_base:
