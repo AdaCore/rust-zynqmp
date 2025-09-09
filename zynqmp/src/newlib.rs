@@ -55,7 +55,7 @@ pub extern "C" fn write(_fd: i32, buf: *const u8, nbytes: i32) -> i32 {
 pub extern "C" fn sbrk(nbytes: i32) -> *mut u8 {
     unsafe extern "C" {
         static mut __sheap: u8;
-        static __heap_size: usize;
+        static __heap_size: u8;
     }
 
     static ALLOCATED: AtomicUsize = AtomicUsize::new(0);
@@ -64,7 +64,7 @@ pub extern "C" fn sbrk(nbytes: i32) -> *mut u8 {
         let allocated = ALLOCATED.load(core::sync::atomic::Ordering::Relaxed);
 
         if let Some(new_allocated) = allocated.checked_add(nbytes) {
-            if new_allocated <= unsafe { __heap_size } {
+            if new_allocated <= unsafe { &__heap_size as *const u8 as usize } {
                 ALLOCATED.store(new_allocated, core::sync::atomic::Ordering::Relaxed);
                 return unsafe { (&raw mut __sheap).add(allocated) };
             }
