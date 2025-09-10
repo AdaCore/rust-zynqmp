@@ -15,11 +15,11 @@ use arm_gic::{
 use qemu_exit::QEMUExit;
 use zynqmp::uart::Write;
 
-zynqmp::entry!(main);
+zynqmp::entry!(entry);
 
 static G: AtomicU8 = AtomicU8::new(0);
 
-fn main() -> ! {
+fn entry() -> ! {
     trigger_sync_interrupt();
 
     assert_eq!(G.load(Ordering::Relaxed), 1);

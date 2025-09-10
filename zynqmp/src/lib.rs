@@ -14,13 +14,13 @@ global_asm!(include_str!("start.S"));
 
 unsafe extern "C" {
     static __vectors: u64;
-    fn __main();
+    fn main();
     fn _exit_handler() -> !;
 }
 
 /// Entry point into Rust code.
 ///
-/// Performs some more hardware setup and then calls `__main`, the entry point
+/// Performs some more hardware setup and then calls `main`, the entry point
 /// into user code (see `entry` below).
 #[unsafe(no_mangle)]
 extern "C" fn __start_rust() -> ! {
@@ -28,7 +28,7 @@ extern "C" fn __start_rust() -> ! {
     enable_fpu_el1();
     mmu::enable();
     unsafe {
-        __main();
+        main();
         _exit_handler();
     }
 }
@@ -77,7 +77,7 @@ pub extern "C" fn __default_handler() {
 macro_rules! entry {
     ($path:path) => {
         #[unsafe(no_mangle)]
-        pub extern "C" fn __main() {
+        pub extern "C" fn main() {
             $path()
         }
     };

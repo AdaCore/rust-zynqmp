@@ -1,8 +1,8 @@
 use std::process;
 
-zynqmp::entry!(main);
+use zynqmp as _; // Ensure that the crate is linked into the binary
 
-fn main() -> ! {
+fn main() {
     let mut string = String::new();
     string.push_str("Hello");
     string.push(' ');
