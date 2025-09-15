@@ -5,7 +5,4 @@ target = "aarch64-unknown-none"
 runner = "qemu-system-aarch64 -monitor telnet:localhost:4444,server,nowait -cpu cortex-a53 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel"
 rustflags = [
     "-C", "link-arg=-Tlink.x",
-    # GNAT Pro for Rust uses GCC instead of lld to link on bareboard targets, which leads to errors
-    # about missing crt0.o (eng/toolchain/rust/rust#645).
-    "-C", "link-arg=-nostartfiles"
 ]
