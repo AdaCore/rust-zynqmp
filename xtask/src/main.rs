@@ -113,7 +113,7 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     let mut num_failed = 0;
 
     let mut log_file = LogFile::new(log_file_path)?;
-    log_file.start_test_suite(examples.len())?;
+    log_file.start_test_suite(examples.len() * RUNNERS.len())?;
 
     for example in examples {
         for (variant, runner) in RUNNERS {
