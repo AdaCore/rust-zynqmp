@@ -1,6 +1,10 @@
 [package]
 name = "zynqmp"
-version = "0.1.0"
+description = "Board support crate for the AMD UltraScale Zynq MPSoC"
+documentation = "https://docs.adacore.com/live/wave/rust/html/rust_ug/rust_ug/platform_specific_information.html#aarch64-bare-metal"
+# The version is set during packaging.
+version = "0.0.0"
+license = "Apache-2.0"
 edition = "2024"
 
 [dependencies]
