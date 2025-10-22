@@ -119,25 +119,40 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
         for (variant, runner) in RUNNERS {
             print!("test {example} ({variant}) ... ");
 
-            let mut child = process::Command::new(&cargo)
-                .arg("run")
+            let mut status = process::Command::new(&cargo)
+                .arg("build")
                 .arg("--target")
                 .arg("aarch64-unknown-none")
                 .arg("--example")
                 .arg(example)
                 .current_dir("zynqmp")
-                .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
                 .spawn()
-                .expect("failed to spawn example");
+                .expect("failed to spawn build")
+                .wait()
+                .unwrap();
 
             let mut timeout = false;
-            let status = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
-                status
-            } else {
-                timeout = true;
-                child.kill().expect("failed to kill example");
-                child.wait().expect("failed to wait for example")
-            };
+
+            if status.success() {
+                let mut child = process::Command::new(&cargo)
+                    .arg("run")
+                    .arg("--target")
+                    .arg("aarch64-unknown-none")
+                    .arg("--example")
+                    .arg(example)
+                    .current_dir("zynqmp")
+                    .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+                    .spawn()
+                    .expect("failed to spawn example");
+
+                status = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
+                    status
+                } else {
+                    timeout = true;
+                    child.kill().expect("failed to kill example");
+                    child.wait().expect("failed to wait for example")
+                };
+            }
 
             if status.success() {
                 println!("ok");
