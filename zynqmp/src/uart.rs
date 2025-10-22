@@ -128,7 +128,14 @@ struct FifoRegister {
 pub unsafe fn uart0() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.
-    unsafe { Uart::new_mmio_at(0xff00_0000) }
+    let mut uart0 = unsafe { Uart::new_mmio_at(0xff00_0000) };
+
+    static INIT: spin::Once = spin::Once::new();
+    INIT.call_once(|| {
+        uart0.initialize();
+    });
+
+    uart0
 }
 
 /// Obtains a reference to the UART1 device.
@@ -140,7 +147,14 @@ pub unsafe fn uart0() -> MmioUart<'static> {
 pub unsafe fn uart1() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.
-    unsafe { Uart::new_mmio_at(0xff01_0000) }
+    let mut uart1 = unsafe { Uart::new_mmio_at(0xff01_0000) };
+
+    static INIT: spin::Once = spin::Once::new();
+    INIT.call_once(|| {
+        uart1.initialize();
+    });
+
+    uart1
 }
 
 impl MmioUart<'_> {

@@ -1,19 +1,13 @@
-use core::sync::atomic::AtomicUsize;
+use core::{arch::asm, ffi::c_long, sync::atomic::AtomicUsize};
 
 use embedded_io::Write;
 
-use crate::{crl_apb, uart};
+use crate::{soft_reset, uart};
 
 /// Performs a soft reset.
 #[unsafe(no_mangle)]
 pub extern "C" fn _exit(_status: i32) -> ! {
-    let mut crl_apb = crl_apb::crl_apb();
-
-    crl_apb.modify_crl_wprot(|crl_wprot| crl_wprot.with_active(false));
-
-    loop {
-        crl_apb.modify_reset_ctrl(|reset_ctrl| reset_ctrl.with_soft_reset(true));
-    }
+    soft_reset()
 }
 
 /// Performs a soft reset.
@@ -72,4 +66,52 @@ pub extern "C" fn sbrk(nbytes: i32) -> *mut u8 {
     };
 
     core::ptr::null_mut()
+}
+
+/// Provides timing information.
+///
+/// The timing information is measured in seconds. On Linux systems, time is measured in clock
+/// ticks and applications use sysconf(_SC_CLK_TCK) to determine the number of clock ticks per
+/// second. As Rust's libc binding assumes a default value of 2 for Linux-like systems, we use this
+/// value to adjust the returned time accordingly.
+#[unsafe(no_mangle)]
+pub extern "C" fn times(buf: *mut tms) -> c_long {
+    const _SC_CLK_TCK: u64 = 2;
+    let Ok(time) = (cntvct() * _SC_CLK_TCK / cntfrq()).try_into() else {
+        return -1;
+    };
+    unsafe {
+        (*buf).tms_utime = time;
+        (*buf).tms_stime = 0;
+        (*buf).tms_cutime = 0;
+        (*buf).tms_cstime = 0;
+    }
+    time
+}
+
+#[repr(C)]
+#[allow(non_camel_case_types)]
+pub struct tms {
+    pub tms_utime: c_long,
+    pub tms_stime: c_long,
+    pub tms_cutime: c_long,
+    pub tms_cstime: c_long,
+}
+
+#[inline]
+fn cntvct() -> u64 {
+    let value: u64;
+    unsafe {
+        asm!("mrs {0}, cntvct_el0", out(reg) value);
+    }
+    value
+}
+
+#[inline]
+fn cntfrq() -> u64 {
+    let freq: u64;
+    unsafe {
+        asm!("mrs {0}, cntfrq_el0", out(reg) freq);
+    }
+    freq
 }

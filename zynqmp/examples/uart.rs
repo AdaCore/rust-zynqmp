@@ -4,12 +4,11 @@
 use qemu_exit::QEMUExit;
 use zynqmp::uart::Write;
 
-zynqmp::entry!(main);
+zynqmp::entry!(entry);
 
-fn main() -> ! {
+fn entry() -> ! {
     // SAFETY: Nobody else is going to access UART0.
     let mut uart = unsafe { zynqmp::uart::uart0() };
-    uart.initialize();
     writeln!(uart, "Hello world, the answer is {}!", 42).unwrap();
     panic!("{} went (intentionally) wrong", "Something");
 }

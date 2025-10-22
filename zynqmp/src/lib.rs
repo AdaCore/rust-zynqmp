@@ -14,19 +14,23 @@ global_asm!(include_str!("start.S"));
 
 unsafe extern "C" {
     static __vectors: u64;
-    fn __main() -> !;
+    fn main();
+    fn _exit_handler() -> !;
 }
 
 /// Entry point into Rust code.
 ///
-/// Performs some more hardware setup and then calls `__main`, the entry point
+/// Performs some more hardware setup and then calls `main`, the entry point
 /// into user code (see `entry` below).
 #[unsafe(no_mangle)]
 extern "C" fn __start_rust() -> ! {
     set_exception_vector_table_el1();
     enable_fpu_el1();
     mmu::enable();
-    unsafe { __main() }
+    unsafe {
+        main();
+        _exit_handler();
+    }
 }
 
 fn set_exception_vector_table_el1() {
@@ -40,7 +44,26 @@ fn enable_fpu_el1() {
     CPACR_EL1.write(CPACR_EL1::FPEN::SET);
 }
 
-/// Default exception handler
+/// Performs a soft reset.
+fn soft_reset() -> ! {
+    let mut crl_apb = crl_apb::crl_apb();
+
+    crl_apb.modify_crl_wprot(|crl_wprot| crl_wprot.with_active(false));
+
+    loop {
+        crl_apb.modify_reset_ctrl(|reset_ctrl| reset_ctrl.with_soft_reset(true));
+    }
+}
+
+/// Performs a soft reset.
+///
+/// Executed if an exit point is reached and the exit handler has not been overridden.
+#[unsafe(no_mangle)]
+pub extern "C" fn __default_exit_handler() {
+    soft_reset()
+}
+
+/// Executes a busy-wait spin-loop.
 ///
 /// Executed if an exception occurs and the specific exception handler has not been overridden.
 #[unsafe(no_mangle)]
@@ -54,9 +77,8 @@ pub extern "C" fn __default_handler() {
 macro_rules! entry {
     ($path:path) => {
         #[unsafe(no_mangle)]
-        pub extern "C" fn __main() -> ! {
-            let f: fn() -> ! = $path;
-            f()
+        pub extern "C" fn main() {
+            $path()
         }
     };
 }
