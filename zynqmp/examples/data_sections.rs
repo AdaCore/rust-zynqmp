@@ -3,13 +3,13 @@
 
 use qemu_exit::QEMUExit;
 
-zynqmp::entry!(entry);
+zynqmp::entry!(main);
 
 static RODATA: &[u8] = b"Hello, world!";
 static mut BSS: u8 = 0;
 static mut DATA: u16 = 1;
 
-fn entry() -> ! {
+fn main() -> ! {
     let x = RODATA;
     let y = &raw const BSS;
     let z = &raw const DATA;

@@ -76,8 +76,8 @@ pub extern "C" fn __default_handler() {
 #[macro_export]
 macro_rules! entry {
     ($path:path) => {
-        #[unsafe(no_mangle)]
-        pub extern "C" fn main() {
+        #[unsafe(export_name = "main")]
+        pub extern "C" fn __main() {
             $path()
         }
     };
