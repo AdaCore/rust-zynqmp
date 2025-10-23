@@ -3,9 +3,9 @@
 
 use qemu_exit::QEMUExit;
 
-zynqmp::entry!(entry);
+zynqmp::entry!(main);
 
-fn entry() -> ! {
+fn main() -> ! {
     let mut x = 1.0;
     x += 2.0;
     assert_eq!(x, 3.0);
