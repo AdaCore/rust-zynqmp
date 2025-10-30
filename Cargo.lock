@@ -416,7 +416,7 @@ dependencies = [
 
 [[package]]
 name = "zynqmp"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "aarch64-cpu",
  "arbitrary-int",
