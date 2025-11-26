@@ -1,6 +1,6 @@
 [package]
 name = "zynqmp"
-description = "Board support crate for the AMD UltraScale Zynq MPSoC"
+description = "Support for the AMD Zynq UltraScale+ MPSoC"
 documentation = "https://docs.adacore.com/live/wave/rust/html/rust_ug/rust_ug/platform_specific_information.html#aarch64-bare-metal"
 # The version is set during packaging.
 version = "0.0.0"
