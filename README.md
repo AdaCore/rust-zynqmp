@@ -1,6 +1,6 @@
-# ZynqMP BSP
+# zynqmp
 
-A Board Support Package for ZynqMP.
+Support for the AMD Zynq UltraScale+ MPSoC.
 
 ## License
 
