@@ -45,7 +45,7 @@ fn enable_fpu_el1() {
 }
 
 /// Performs a soft reset.
-fn soft_reset() -> ! {
+pub fn soft_reset() -> ! {
     let mut crl_apb = crl_apb::crl_apb();
 
     crl_apb.modify_crl_wprot(|crl_wprot| crl_wprot.with_active(false));
@@ -59,7 +59,7 @@ fn soft_reset() -> ! {
 ///
 /// Executed if an exit point is reached and the exit handler has not been overridden.
 #[unsafe(no_mangle)]
-pub extern "C" fn __default_exit_handler() {
+extern "C" fn __default_exit_handler() {
     soft_reset()
 }
 
@@ -67,7 +67,7 @@ pub extern "C" fn __default_exit_handler() {
 ///
 /// Executed if an exception occurs and the specific exception handler has not been overridden.
 #[unsafe(no_mangle)]
-pub extern "C" fn __default_handler() {
+extern "C" fn __default_handler() {
     loop {
         core::hint::spin_loop();
     }
