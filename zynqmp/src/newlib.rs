@@ -1,3 +1,5 @@
+//! # Newlib Support
+
 use core::{arch::asm, ffi::c_long, sync::atomic::AtomicUsize};
 
 use embedded_io::Write;

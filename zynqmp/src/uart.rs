@@ -1,7 +1,24 @@
-// Based on the Zynq UltraScale+ Devices Register Reference (UG1087)
-// (https://docs.amd.com/r/en-US/ug1087-zynq-ultrascale-registers/UART-Module)
-// and the Zynq UltraScale+ Device Technical Reference Manual (UG1085)
-// (https://docs.amd.com/v/u/en-US/ug1085-zynq-ultrascale-trm).
+//! # UART Controller
+//!
+//! You can obtain a reference to the UART devices by using the [`uart0`] and [`uart1`] functions.
+//! The UART device will be initialized automatically when a reference is obtained for the first
+//! time. The returned handle implements the [`Read`] and [`Write`] traits that provide equivalent
+//! functionality to `std::io::Read` and `std::io::Write`.
+//!
+//! # Example
+//!
+//! ```
+//! use zynqmp::uart::Write;
+//!
+//! let mut uart = unsafe { zynqmp::uart::uart0() };
+//! writeln!(uart, "Hello world, the answer is {}!", 42).unwrap();
+//! ```
+
+// The implmentation is based on the Zynq UltraScale+ Devices Register Reference (UG1087) [1]
+// and the Zynq UltraScale+ Device Technical Reference Manual (UG1085) [2].
+//
+// [1] https://docs.amd.com/r/en-US/ug1087-zynq-ultrascale-registers/UART-Module
+// [2] https://docs.amd.com/v/u/en-US/ug1085-zynq-ultrascale-trm
 
 use bitbybit::{bitenum, bitfield};
 pub use embedded_io::{ErrorType, Read, ReadReady, Write, WriteReady};
@@ -123,8 +140,8 @@ struct FifoRegister {
 ///
 /// # Safety
 ///
-/// The caller must ensure that no more than a single instance of the returned
-/// value exists at any time.
+/// The caller must ensure that the reference is not used concurrently in a way
+/// that could result in data races.
 pub unsafe fn uart0() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.
@@ -142,8 +159,8 @@ pub unsafe fn uart0() -> MmioUart<'static> {
 ///
 /// # Safety
 ///
-/// The caller must ensure that no more than a single instance of the returned
-/// value exists at any time.
+/// The caller must ensure that the reference is not used concurrently in a way
+/// that could result in data races.
 pub unsafe fn uart1() -> MmioUart<'static> {
     // SAFETY: The caller guarantees that nobody else is accessing the device
     // concurrently.

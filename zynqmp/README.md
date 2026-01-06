@@ -1,4 +1,6 @@
-# Runtime support for ARM Cortex-A (AArch64)
+# zynqmp
+
+Support for the AMD Zynq UltraScale+ MPSoC.
 
 ## Examples
 

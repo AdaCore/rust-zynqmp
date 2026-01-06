@@ -1,5 +1,8 @@
-// Based on the Zynq UltraScale+ Devices Register Reference (UG1087)
-// (https://docs.amd.com/r/en-US/ug1087-zynq-ultrascale-registers/CRL_APB-Module).
+//! # CRL_APB Module: FPD Clock and Reset Control
+
+// The implementation is baed on the Zynq UltraScale+ Devices Register Reference (UG1087) [1].
+//
+// [1] https://docs.amd.com/r/en-US/ug1087-zynq-ultrascale-registers/CRL_APB-Module
 
 use bitbybit::bitfield;
 

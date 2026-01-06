@@ -1,3 +1,5 @@
+//! # MMU Configuration
+
 // The implementation is based on the Zynq UltraScale+ Device Technical
 // Reference Manual (UG1085) [1], the AArch64 memory management Guide [2], the
 // AArch64 memory management examples [3], and the Arm® Architecture Reference
