@@ -34,9 +34,8 @@
 //! Alternatively, this flag can be defined in a build script or the `RUSTFLAGS` environment
 //! variable.
 //!
-//! The crate provides limited support for `std` based on
-//! [Newlib](https://www.sourceware.org/newlib/). The `zynqmp` crate must be referenced in a use
-//! import to ensure that the crate is linked into the binary:
+//! The [`std`](#std) feature enables limited support for `std`. The `zynqmp` crate must be
+//! referenced in a use import to ensure that the crate is linked into the binary:
 //!
 //! ```
 //! use zynqmp as _;
@@ -88,6 +87,13 @@
 //! }
 //! ```
 //!
+//! # Optional Features
+//!
+//! ## `std`
+//!
+//! Provides limited support for `std` based on [Newlib](https://www.sourceware.org/newlib/).
+//! Requires GNAT Pro for Rust 26 or newer.
+//!
 //! # Minimum Supported Rust Version (MSRV)
 //!
 //! This crate is guaranteed to compile on stable Rust 1.85.0 and up. It might compile with older
@@ -101,6 +107,7 @@ use aarch64_cpu::registers::{CPACR_EL1, VBAR_EL1, Writeable};
 
 mod crl_apb;
 mod mmu;
+#[cfg(feature = "std")]
 mod newlib;
 pub mod uart;
 

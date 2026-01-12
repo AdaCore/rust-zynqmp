@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 use wait_timeout::ChildExt;
 
 const TIMEOUT: time::Duration = time::Duration::from_secs(10);
-const RUNNERS: [(&str, &str); 2] = [
+const RUNNERS: &[(&str, &str)] = &[
     (
         "started_at_EL1",
         "qemu-system-aarch64 -machine xlnx-zcu102 -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel",
@@ -16,6 +16,7 @@ const RUNNERS: [(&str, &str); 2] = [
         "qemu-system-aarch64 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel",
     ),
 ];
+const EXAMPLE_FEATURES: &[(&str, &str)] = &[("newlib", "std")];
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -116,6 +117,11 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     log_file.start_test_suite(examples.len() * RUNNERS.len())?;
 
     for example in examples {
+        let features = EXAMPLE_FEATURES
+            .iter()
+            .find(|(e, _)| *e == example)
+            .map_or("", |(_, f)| *f);
+
         for (variant, runner) in RUNNERS {
             print!("test {example} ({variant}) ... ");
 
@@ -125,6 +131,8 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                 .arg("aarch64-unknown-none")
                 .arg("--example")
                 .arg(example)
+                .arg("--features")
+                .arg(features)
                 .current_dir("zynqmp")
                 .spawn()
                 .expect("failed to spawn build")
@@ -140,6 +148,8 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                     .arg("aarch64-unknown-none")
                     .arg("--example")
                     .arg(example)
+                    .arg("--features")
+                    .arg(features)
                     .current_dir("zynqmp")
                     .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
                     .spawn()
