@@ -55,9 +55,9 @@ __start:
 
 __start_memory_init:
     // Copy .data
-    ldr     x0, = __sdata
-    ldr     x1, = __edata
-    ldr     x2, = __sidata
+    ldr     x0, = __data_start
+    ldr     x1, = __data_end
+    ldr     x2, = __data_load_start
 0:
     cmp     x0, x1
     b.eq    1f
@@ -67,8 +67,8 @@ __start_memory_init:
 1:
 
     // Clear .bss
-    ldr     x0, = __sbss
-    ldr     x1, = __ebss
+    ldr     x0, = __bss_start
+    ldr     x1, = __bss_end
     mov     x2, #0
 0:
     cmp     x0, x1
@@ -230,7 +230,7 @@ __start_el1:
 
 .type __system_stack_base, %object
 __system_stack_base:
-    .word   __estack0
-    .word   __estack1
-    .word   __estack2
-    .word   __estack3
+    .word   __stack0_end
+    .word   __stack1_end
+    .word   __stack2_end
+    .word   __stack3_end

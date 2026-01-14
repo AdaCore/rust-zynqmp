@@ -29,69 +29,70 @@ SECTIONS {
 
     .data : ALIGN(8) {
         . = ALIGN(8);
-        __sdata = .;
+        __data_start = .;
         *(.data .data.*);
         . = ALIGN(8);
     } > DATA AT>CODE
     . = ALIGN(8);
-    __edata = .;
-    __data_dwords = (__edata - __sdata) >> 3;
+    __data_end = .;
+    __data_dwords = (__data_end - __data_start) >> 3;
 
-    __sidata = LOADADDR(.data);
+    __data_load_start = LOADADDR(.data);
 
     .bss (NOLOAD) : ALIGN(8) {
         . = ALIGN(8);
-        __sbss = .;
+        __bss_start = .;
         *(.bss .bss* COMMON)
         . = ALIGN(8);
     } > DATA
-    __ebss = .;
+    __bss_end = .;
 
     .stack (NOLOAD) : ALIGN(0x1000) {
         /* Guard page */
         . = . + 0x1000;
-        __sstack = .;
 
-        __sstack0 = .;
+        __stack_start = .;
+
+        __stack0_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack0 = .;
+        __stack0_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack1 = .;
+        __stack1_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack1 = .;
+        __stack1_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack2 = .;
+        __stack2_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack2 = .;
+        __stack2_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack3 = .;
+        __stack3_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack3 = .;
+        __stack3_end = .;
 
-        __estack = .;
+        __stack_end = .;
 
         /* Guard page */
         . = . + 0x1000;
     } > DATA
 
     .heap (NOLOAD) : ALIGN(0x1000) {
-        __sheap = .;
+        __heap_start = .;
         . += __heap_size;
         . = ALIGN(0x1000);
-        __eheap = .;
+        __heap_end = .;
     } > DATA
 
     /DISCARD/ : {
