@@ -10,48 +10,46 @@ Based upon the linker script from https://github.com/rust-embedded/cortex-ar/cor
 
 INCLUDE memory.x
 
-_DEFAULT_STACK_SIZE = (8 * 1024 * 1024);
-_DEFAULT_HEAP_SIZE = (32 * 1024 * 1024);
-
-__stack_size = DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
-__heap_size = DEFINED (__heap_size) ? __heap_size : _DEFAULT_HEAP_SIZE;
+PROVIDE_HIDDEN(__stack_size = 8M);
 
 SECTIONS {
-    .text : {
-        KEEP (*(.vectors))
+    .text : ALIGN(0x1000) {
+        __text_start = .;
+        KEEP(*(.vectors))
         *(.boot)
-        *(.text .text*)
+        *(.text)
+        *(.text.*)
+        __text_end = .;
     } > CODE
 
-    .rodata : {
-        *(.rodata .rodata*)
+    .rodata : ALIGN(0x1000) {
+        *(.rodata)
+        *(.rodata.*)
     } > CODE
 
-    .data : ALIGN(8) {
-        . = ALIGN(8);
+    .data : ALIGN(0x1000) {
         __data_start = .;
-        *(.data .data.*);
+        *(.data)
+        *(.data.*)
         . = ALIGN(8);
+        __data_end = .;
     } > DATA AT>CODE
-    . = ALIGN(8);
-    __data_end = .;
-    __data_dwords = (__data_end - __data_start) >> 3;
 
     __data_load_start = LOADADDR(.data);
 
     .bss (NOLOAD) : ALIGN(8) {
-        . = ALIGN(8);
         __bss_start = .;
-        *(.bss .bss* COMMON)
-        . = ALIGN(8);
+        *(.bss)
+        *(.bss.*)
+        *(COMMON)
+        __bss_end = .;
     } > DATA
-    __bss_end = .;
 
     .stack (NOLOAD) : ALIGN(0x1000) {
+        __stack_start = .;
+
         /* Guard page */
         . = . + 0x1000;
-
-        __stack_start = .;
 
         __stack0_start = .;
         . += __stack_size;
@@ -82,17 +80,16 @@ SECTIONS {
         . = ALIGN(0x1000);
         __stack3_end = .;
 
-        __stack_end = .;
-
         /* Guard page */
         . = . + 0x1000;
+
+        __stack_end = .;
     } > DATA
 
     .heap (NOLOAD) : ALIGN(0x1000) {
         __heap_start = .;
-        . += __heap_size;
-        . = ALIGN(0x1000);
-        __heap_end = .;
+        __heap_end = ORIGIN(DATA) + LENGTH(DATA);
+        __heap_size = __heap_end - __heap_start;
     } > DATA
 
     /DISCARD/ : {
@@ -108,3 +105,6 @@ PROVIDE(_serror_handler = __default_handler);
 
 /* Weak alias for default exit handler */
 PROVIDE(_exit_handler   = __default_exit_handler);
+
+/* Prerequisites for correct MMU configuration */
+ASSERT(__stack_end < 0x40000000, "ERROR: stack exceeds first 1GB memory block")
