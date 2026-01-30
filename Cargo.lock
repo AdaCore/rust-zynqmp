@@ -12,6 +12,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "adacore-zynqmp"
+version = "0.0.0"
+dependencies = [
+ "aarch64-cpu",
+ "arbitrary-int",
+ "arm-gic",
+ "bitbybit",
+ "derive-mmio",
+ "embedded-io",
+ "qemu-exit",
+ "spin",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -436,18 +450,4 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "zynqmp"
-version = "0.0.0"
-dependencies = [
- "aarch64-cpu",
- "arbitrary-int",
- "arm-gic",
- "bitbybit",
- "derive-mmio",
- "embedded-io",
- "qemu-exit",
- "spin",
 ]

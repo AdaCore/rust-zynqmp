@@ -8,9 +8,9 @@
 //! # Example
 //!
 //! ```
-//! use zynqmp::uart::Write;
+//! use adacore_zynqmp::uart::Write;
 //!
-//! let mut uart = unsafe { zynqmp::uart::uart0() };
+//! let mut uart = unsafe { adacore_zynqmp::uart::uart0() };
 //! writeln!(uart, "Hello world, the answer is {}!", 42).unwrap();
 //! ```
 
