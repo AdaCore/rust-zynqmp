@@ -1,6 +1,6 @@
 use std::process;
 
-use zynqmp as _; // Ensure that the crate is linked into the binary
+use adacore_zynqmp as _; // Ensure that the crate is linked into the binary
 
 fn main() {
     let mut string = String::new();

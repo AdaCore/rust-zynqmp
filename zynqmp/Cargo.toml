@@ -1,5 +1,5 @@
 [package]
-name = "zynqmp"
+name = "adacore-zynqmp"
 description = "Support for the AMD Zynq UltraScale+ MPSoC"
 documentation = "https://docs.adacore.com/live/wave/rust/html/rust_ug/rust_ug/platform_specific_information.html#aarch64-bare-metal"
 # The version is set during packaging.

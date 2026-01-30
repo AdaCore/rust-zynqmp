@@ -4,6 +4,7 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
 use aarch64_cpu::registers::{CNTV_CTL_EL0, CNTV_TVAL_EL0, Writeable};
+use adacore_zynqmp::uart::Write;
 use arm_gic::{
     IntId,
     gicv2::{
@@ -13,9 +14,8 @@ use arm_gic::{
     irq_enable,
 };
 use qemu_exit::QEMUExit;
-use zynqmp::uart::Write;
 
-zynqmp::entry!(main);
+adacore_zynqmp::entry!(main);
 
 static G: AtomicU8 = AtomicU8::new(0);
 
@@ -90,7 +90,7 @@ extern "C" fn _irq_handler() {
 
 #[panic_handler]
 fn panic(panic: &core::panic::PanicInfo<'_>) -> ! {
-    let mut uart = unsafe { zynqmp::uart::uart0() };
+    let mut uart = unsafe { adacore_zynqmp::uart::uart0() };
     writeln!(uart, "Panic: {}", panic.message()).unwrap();
     qemu_exit::AArch64::new().exit_failure();
 }

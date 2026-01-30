@@ -3,7 +3,7 @@
 
 use qemu_exit::QEMUExit;
 
-zynqmp::entry!(main);
+adacore_zynqmp::entry!(main);
 
 fn main() -> ! {
     let mut x = 1.0;

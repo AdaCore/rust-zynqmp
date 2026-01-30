@@ -20,7 +20,7 @@
 //! REGION_ALIAS("DATA", DDR)
 //! ```
 //!
-//! Cargo will generate a linker script called `link.x` when the `zynqmp` crate is built. You must
+//! Cargo will generate a linker script called `link.x` when the `adacore_zynqmp` crate is built. You must
 //! ensure that this linker script is used by adding the following flag to your
 //! `.cargo/config.toml`:
 //!
@@ -34,11 +34,11 @@
 //! Alternatively, this flag can be defined in a build script or the `RUSTFLAGS` environment
 //! variable.
 //!
-//! The [`std`](#std) feature enables limited support for `std`. The `zynqmp` crate must be
+//! The [`std`](#std) feature enables limited support for `std`. The `adacore_zynqmp` crate must be
 //! referenced in a use import to ensure that the crate is linked into the binary:
 //!
 //! ```
-//! use zynqmp as _;
+//! use adacore_zynqmp as _;
 //!
 //! fn main() {
 //!     println!("Hello, world!");
@@ -183,7 +183,7 @@ extern "C" fn __default_handler() {
 /// #![no_std]
 /// #![no_main]
 ///
-/// use zynqmp::{entry, soft_reset};
+/// use adacore_zynqmp::{entry, soft_reset};
 ///
 /// entry!(main);
 ///
