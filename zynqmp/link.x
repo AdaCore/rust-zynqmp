@@ -10,88 +10,86 @@ Based upon the linker script from https://github.com/rust-embedded/cortex-ar/cor
 
 INCLUDE memory.x
 
-_DEFAULT_STACK_SIZE = (8 * 1024 * 1024);
-_DEFAULT_HEAP_SIZE = (32 * 1024 * 1024);
-
-__stack_size = DEFINED (__stack_size) ? __stack_size : _DEFAULT_STACK_SIZE;
-__heap_size = DEFINED (__heap_size) ? __heap_size : _DEFAULT_HEAP_SIZE;
+PROVIDE_HIDDEN(__stack_size = 8M);
 
 SECTIONS {
-    .text : {
-        KEEP (*(.vectors))
+    .text : ALIGN(0x1000) {
+        __text_start = .;
+        KEEP(*(.vectors))
         *(.boot)
-        *(.text .text*)
+        *(.text)
+        *(.text.*)
+        __text_end = .;
     } > CODE
 
-    .rodata : {
-        *(.rodata .rodata*)
+    .rodata : ALIGN(0x1000) {
+        *(.rodata)
+        *(.rodata.*)
     } > CODE
 
-    .data : ALIGN(8) {
+    .data : ALIGN(0x1000) {
+        __data_start = .;
+        *(.data)
+        *(.data.*)
         . = ALIGN(8);
-        __sdata = .;
-        *(.data .data.*);
-        . = ALIGN(8);
+        __data_end = .;
     } > DATA AT>CODE
-    . = ALIGN(8);
-    __edata = .;
-    __data_dwords = (__edata - __sdata) >> 3;
 
-    __sidata = LOADADDR(.data);
+    __data_load_start = LOADADDR(.data);
 
     .bss (NOLOAD) : ALIGN(8) {
-        . = ALIGN(8);
-        __sbss = .;
-        *(.bss .bss* COMMON)
-        . = ALIGN(8);
+        __bss_start = .;
+        *(.bss)
+        *(.bss.*)
+        *(COMMON)
+        __bss_end = .;
     } > DATA
-    __ebss = .;
 
     .stack (NOLOAD) : ALIGN(0x1000) {
+        __stack_start = .;
+
         /* Guard page */
         . = . + 0x1000;
-        __sstack = .;
 
-        __sstack0 = .;
+        __stack0_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack0 = .;
+        __stack0_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack1 = .;
+        __stack1_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack1 = .;
+        __stack1_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack2 = .;
+        __stack2_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack2 = .;
+        __stack2_end = .;
 
         /* Guard page */
         . = . + 0x1000;
 
-        __sstack3 = .;
+        __stack3_start = .;
         . += __stack_size;
         . = ALIGN(0x1000);
-        __estack3 = .;
-
-        __estack = .;
+        __stack3_end = .;
 
         /* Guard page */
         . = . + 0x1000;
+
+        __stack_end = .;
     } > DATA
 
     .heap (NOLOAD) : ALIGN(0x1000) {
-        __sheap = .;
-        . += __heap_size;
-        . = ALIGN(0x1000);
-        __eheap = .;
+        __heap_start = .;
+        __heap_end = ORIGIN(DATA) + LENGTH(DATA);
+        __heap_size = __heap_end - __heap_start;
     } > DATA
 
     /DISCARD/ : {
@@ -107,3 +105,6 @@ PROVIDE(_serror_handler = __default_handler);
 
 /* Weak alias for default exit handler */
 PROVIDE(_exit_handler   = __default_exit_handler);
+
+/* Prerequisites for correct MMU configuration */
+ASSERT(__stack_end < 0x40000000, "ERROR: stack exceeds first 1GB memory block")
