@@ -1,0 +1,13 @@
+- [ ] Change version in `Cargo.toml` and add release to `CHANGELOG`
+- [ ] Merge changes into `main`
+- [ ] Add tag
+   - Make sure that `main` is checked out and updated to the latest state
+   - `git tag -a vX.Y.Z -m ""`
+- [ ] Push tag
+   - `git push --follow-tags`
+- [ ] Approve publishing to crates.io in CI pipeline
+- [ ] Publish release on GitHub
+   - [Draft new release](https://github.com/AdaCore/rust-zynqmp/releases/new)
+   - Select tag
+   - Add corresponding part of `CHANGELOG` as description
+   - Publish release
