@@ -1,9 +1,18 @@
-# zynqmp
+[![crates.io](https://img.shields.io/crates/v/adacore-zynqmp)](https://crates.io/crates/adacore-zynqmp)
+[![docs.rs](https://img.shields.io/docsrs/adacore-zynqmp)](https://docs.rs/adacore-zynqmp)
 
-Support for the AMD Zynq UltraScale+ MPSoC.
+# Support for the AMD Zynq UltraScale+ MPSoC
 
-## Examples
+A Rust crate providing hardware and runtime support for the AMD Zynq UltraScale+ MPSoC platform, targeting Arm Cortex-A53 cores in AArch64 mode.
 
-The command `cargo run --example NAME -- -gdb tcp::3333 -S` executes an example using QEMU with remote debugging enabled.
-QEMU will freeze the machine at startup and wait for a GDB connection.
-After starting the application connect to QEMU in a GDB shell with `target remote :3333`.
+## Features
+
+- Arm Cortex-A53 (AArch64) support
+- MMU configuration enabling caching and enforcing memory protection (W^X enforcement, guard pages)
+- Custom interrupt handling
+- UART driver
+- Optional partial `std` support
+
+## License
+
+This work is licensed under `Apache-2.0`.

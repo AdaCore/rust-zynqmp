@@ -2,6 +2,7 @@ stages:
   - check
   - build
   - test
+  - publish
 
 include:
   # Check
@@ -28,3 +29,21 @@ include:
     inputs:
       anod-args: run test
       needs: []
+
+# Publish
+publish:
+  stage: publish
+  services:
+    - image:pe-base
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+$/
+  script:
+    - generic_anod_ci --setup wave --no-current-project
+    - . /tmp/ci_env.sh
+    - anod build --target aarch64-elf rust-multi
+    - eval `anod printenv --target aarch64-elf rust-multi`
+    - cd zynqmp && cargo publish
+  environment:
+    name: "crates.io"
+    action: start
