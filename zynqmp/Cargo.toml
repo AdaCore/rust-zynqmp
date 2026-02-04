@@ -1,11 +1,21 @@
 [package]
 name = "adacore-zynqmp"
-description = "Support for the AMD Zynq UltraScale+ MPSoC"
-documentation = "https://docs.adacore.com/live/wave/rust/html/rust_ug/rust_ug/platform_specific_information.html#aarch64-bare-metal"
-# The version is set during packaging.
 version = "0.0.0"
-license = "Apache-2.0"
 edition = "2024"
+description = "Support for the AMD Zynq UltraScale+ MPSoC"
+repository = "https://github.com/AdaCore/rust-zynqmp"
+license = "Apache-2.0"
+categories = [
+    "embedded",
+    "no-std",
+]
+keywords = [
+    "arm64",
+    "aarch64",
+    "embedded",
+    "no-std",
+]
+exclude = [".*", "DEVELOPMENT.md"]
 
 [dependencies]
 aarch64-cpu = "10.0.0"
