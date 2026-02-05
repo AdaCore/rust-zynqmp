@@ -42,6 +42,7 @@ SECTIONS {
         *(.bss)
         *(.bss.*)
         *(COMMON)
+        . = ALIGN(8);
         __bss_end = .;
     } > DATA
 
