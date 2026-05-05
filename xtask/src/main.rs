@@ -1,6 +1,10 @@
 #![warn(clippy::pedantic)]
 
-use std::{env, error, fs, io::Write, path, process, time};
+use std::{
+    env, error, fs,
+    io::{Read, Write},
+    path, process, thread, time,
+};
 
 use clap::{Parser, Subcommand};
 use wait_timeout::ChildExt;
@@ -140,6 +144,7 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                 .unwrap();
 
             let mut timeout = false;
+            let mut captured_stdout = String::new();
 
             if status.success() {
                 let mut child = process::Command::new(&cargo)
@@ -152,8 +157,15 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                     .arg(features)
                     .current_dir("zynqmp")
                     .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+                    .stdout(process::Stdio::piped())
                     .spawn()
                     .expect("failed to spawn example");
+
+                let mut child_stdout = child.stdout.take().expect("failed to take stdout");
+                let reader = thread::spawn(move || {
+                    let mut buf = String::new();
+                    child_stdout.read_to_string(&mut buf).map(|_| buf)
+                });
 
                 status = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
                     status
@@ -162,13 +174,25 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                     child.kill().expect("failed to kill example");
                     child.wait().expect("failed to wait for example")
                 };
+
+                captured_stdout = reader.join().unwrap().unwrap_or_default();
             }
 
-            if status.success() {
+            let stdout_path = path::Path::new("zynqmp/examples").join(format!("{example}.stdout"));
+            let expected_stdout = stdout_path
+                .exists()
+                .then(|| fs::read_to_string(&stdout_path).expect("failed to read .stdout file"));
+            let output_ok = expected_stdout
+                .as_deref()
+                .is_none_or(|e| captured_stdout == e);
+
+            if status.success() && output_ok {
                 println!("ok");
                 num_passed += 1;
             } else {
-                let reason = if let Some(code) = status.code() {
+                let reason = if status.success() {
+                    "unexpected output".to_string()
+                } else if let Some(code) = status.code() {
                     format!("exit code {code}")
                 } else {
                     (if timeout { "timeout" } else { "terminated" }).to_string()
@@ -176,9 +200,17 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
                 println!("FAILED ({reason})");
                 num_failed += 1;
             }
+            if !output_ok {
+                println!("--- expected stdout ---");
+                print!("{}", expected_stdout.as_deref().unwrap_or(""));
+                println!("--- actual stdout ---");
+            }
+            print!("{captured_stdout}");
 
-            log_file
-                .add_test_result(&format!("[example] {example}#{variant}"), status.success())?;
+            log_file.add_test_result(
+                &format!("[example] {example}#{variant}"),
+                status.success() && output_ok,
+            )?;
         }
     }
 
