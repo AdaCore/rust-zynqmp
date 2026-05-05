@@ -1,6 +1,10 @@
 #![warn(clippy::pedantic)]
 
-use std::{env, error, fs, io::Write, path, process, time};
+use std::{
+    env, error, fs,
+    io::{Read, Write},
+    path, process, thread, time,
+};
 
 use clap::{Parser, Subcommand};
 use wait_timeout::ChildExt;
@@ -94,19 +98,119 @@ impl LogFile {
     }
 }
 
-fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error>> {
-    let cargo = env::var_os("CARGO").unwrap();
-    let output = process::Command::new(&cargo)
+struct TestOutcome {
+    passed: bool,
+    reason: Option<String>,
+    expected_stdout: Option<String>,
+    captured_stdout: String,
+}
+
+fn discover_examples(cargo: &std::ffi::OsStr) -> Vec<String> {
+    let output = process::Command::new(cargo)
         .arg("run")
         .arg("--example")
         .output()
         .expect("failed to execute cargo");
     let stderr = String::from_utf8(output.stderr).unwrap();
-    let examples = stderr
+    stderr
         .split('\n')
         .filter(|l| l.starts_with(' ')) // Only the example names are indented
-        .map(str::trim)
-        .collect::<Vec<_>>();
+        .map(|l| l.trim().to_owned())
+        .collect()
+}
+
+fn run_single_test(
+    cargo: &std::ffi::OsStr,
+    example: &str,
+    features: &str,
+    runner: &str,
+) -> TestOutcome {
+    let build_status = process::Command::new(cargo)
+        .arg("build")
+        .arg("--target")
+        .arg("aarch64-unknown-none")
+        .arg("--example")
+        .arg(example)
+        .arg("--features")
+        .arg(features)
+        .current_dir("zynqmp")
+        .spawn()
+        .expect("failed to spawn build")
+        .wait()
+        .unwrap();
+
+    if !build_status.success() {
+        let reason = build_status.code().map_or_else(
+            || "terminated".to_string(),
+            |code| format!("exit code {code}"),
+        );
+        return TestOutcome {
+            passed: false,
+            reason: Some(reason),
+            expected_stdout: None,
+            captured_stdout: String::new(),
+        };
+    }
+
+    let mut child = process::Command::new(cargo)
+        .arg("run")
+        .arg("--target")
+        .arg("aarch64-unknown-none")
+        .arg("--example")
+        .arg(example)
+        .arg("--features")
+        .arg(features)
+        .current_dir("zynqmp")
+        .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+        .stdout(process::Stdio::piped())
+        .spawn()
+        .expect("failed to spawn example");
+
+    let mut child_stdout = child.stdout.take().expect("failed to take stdout");
+    let reader = thread::spawn(move || {
+        let mut buf = String::new();
+        child_stdout.read_to_string(&mut buf).map(|_| buf)
+    });
+
+    let (run_status, timed_out) = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
+        (status, false)
+    } else {
+        child.kill().expect("failed to kill example");
+        (child.wait().expect("failed to wait for example"), true)
+    };
+
+    let captured_stdout = reader.join().unwrap().unwrap_or_default();
+
+    let stdout_path = path::Path::new("zynqmp/examples").join(format!("{example}.stdout"));
+    let expected_stdout = stdout_path
+        .exists()
+        .then(|| fs::read_to_string(&stdout_path).expect("failed to read .stdout file"));
+    let output_ok = expected_stdout
+        .as_deref()
+        .is_none_or(|expected| captured_stdout == expected);
+
+    let passed = run_status.success() && output_ok;
+    let reason = if passed {
+        None
+    } else if run_status.success() {
+        Some("unexpected output".to_string())
+    } else if let Some(code) = run_status.code() {
+        Some(format!("exit code {code}"))
+    } else {
+        Some((if timed_out { "timeout" } else { "terminated" }).to_string())
+    };
+
+    TestOutcome {
+        passed,
+        reason,
+        expected_stdout,
+        captured_stdout,
+    }
+}
+
+fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error>> {
+    let cargo = env::var_os("CARGO").unwrap();
+    let examples = discover_examples(&cargo);
 
     println!("running {} examples", examples.len());
 
@@ -116,69 +220,32 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     let mut log_file = LogFile::new(log_file_path)?;
     log_file.start_test_suite(examples.len() * RUNNERS.len())?;
 
-    for example in examples {
+    for example in &examples {
         let features = EXAMPLE_FEATURES
             .iter()
-            .find(|(e, _)| *e == example)
+            .find(|(e, _)| e == example)
             .map_or("", |(_, f)| *f);
 
         for (variant, runner) in RUNNERS {
             print!("test {example} ({variant}) ... ");
 
-            let mut status = process::Command::new(&cargo)
-                .arg("build")
-                .arg("--target")
-                .arg("aarch64-unknown-none")
-                .arg("--example")
-                .arg(example)
-                .arg("--features")
-                .arg(features)
-                .current_dir("zynqmp")
-                .spawn()
-                .expect("failed to spawn build")
-                .wait()
-                .unwrap();
+            let outcome = run_single_test(&cargo, example, features, runner);
 
-            let mut timeout = false;
-
-            if status.success() {
-                let mut child = process::Command::new(&cargo)
-                    .arg("run")
-                    .arg("--target")
-                    .arg("aarch64-unknown-none")
-                    .arg("--example")
-                    .arg(example)
-                    .arg("--features")
-                    .arg(features)
-                    .current_dir("zynqmp")
-                    .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
-                    .spawn()
-                    .expect("failed to spawn example");
-
-                status = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
-                    status
-                } else {
-                    timeout = true;
-                    child.kill().expect("failed to kill example");
-                    child.wait().expect("failed to wait for example")
-                };
-            }
-
-            if status.success() {
+            if outcome.passed {
                 println!("ok");
                 num_passed += 1;
             } else {
-                let reason = if let Some(code) = status.code() {
-                    format!("exit code {code}")
-                } else {
-                    (if timeout { "timeout" } else { "terminated" }).to_string()
-                };
-                println!("FAILED ({reason})");
+                println!("FAILED ({})", outcome.reason.as_deref().unwrap_or(""));
                 num_failed += 1;
             }
+            if outcome.expected_stdout.is_some() && !outcome.passed {
+                println!("--- expected stdout ---");
+                print!("{}", outcome.expected_stdout.as_deref().unwrap_or(""));
+                println!("--- actual stdout ---");
+            }
+            print!("{}", outcome.captured_stdout);
 
-            log_file
-                .add_test_result(&format!("[example] {example}#{variant}"), status.success())?;
+            log_file.add_test_result(&format!("[example] {example}#{variant}"), outcome.passed)?;
         }
     }
 
