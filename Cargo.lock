@@ -279,6 +279,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
+
+[[package]]
 name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -429,6 +435,8 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "libc",
+ "similar",
  "wait-timeout",
 ]
 
@@ -450,4 +458,11 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zynqmp-libtest"
+version = "0.0.0"
+dependencies = [
+ "adacore-zynqmp",
 ]

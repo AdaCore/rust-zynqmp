@@ -91,7 +91,36 @@
 //!
 //! ## `std`
 //!
-//! Provides limited support for `std` based on [Newlib](https://www.sourceware.org/newlib/).
+//! Provides limited support for `std` based on [Newlib](https://www.sourceware.org/newlib/),
+//! including support for `cargo test`:
+//!
+//! ```no_run
+//! use adacore_zynqmp as _;
+//!
+//! #[cfg(test)]
+//! mod tests {
+//!     #[test]
+//!     fn it_works() {
+//!         assert_eq!(2 + 2, 4);
+//!     }
+//! }
+//! ```
+//!
+//! ### Limitations
+//!
+//! Panics on this target call `abort()` rather than unwinding the stack, which
+//! has two consequences:
+//!
+//! - `#[should_panic]` cannot confirm an expected panic: when a
+//!   `#[should_panic]` test actually panics, the abort terminates the whole
+//!   test binary and the harness never observes the panic. A `#[should_panic]`
+//!   test that does *not* panic is still reported as a failure correctly,
+//!   since the harness only needs to observe a normal return.
+//! - An unexpected panic in any test aborts the entire test binary; results
+//!   for subsequent tests are lost. On QEMU, `abort()` triggers a soft reset
+//!   which QEMU may not handle, causing the process to hang until the runner
+//!   kills it.
+//!
 //! Requires GNAT Pro for Rust 26 or newer.
 //!
 //! # Minimum Supported Rust Version (MSRV)

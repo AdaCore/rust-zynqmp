@@ -5,4 +5,8 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
+similar = "2"
 wait-timeout = "0.2.1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
