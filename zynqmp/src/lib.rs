@@ -119,9 +119,27 @@
 //! - An unexpected panic in any test aborts the entire test binary; results
 //!   for subsequent tests are lost. On QEMU, `abort()` triggers a soft reset
 //!   which QEMU may not handle, causing the process to hang until the runner
-//!   kills it.
+//!   kills it. Enable the [`semihosting`](#semihosting) feature to make QEMU
+//!   exit cleanly instead.
 //!
 //! Requires GNAT Pro for Rust 26 or newer.
+//!
+//! ## `semihosting`
+//!
+//! Enables clean QEMU termination via semihosting, which is useful for
+//! `cargo test` where a hanging process would otherwise require a timeout to
+//! recover from. Specifically:
+//!
+//! - [`_exit`](https://www.man7.org/linux/man-pages/man3/exit.3.html) terminates
+//!   via a semihosting `SYS_EXIT` call rather than a soft reset.
+//! - The default exception handler calls `_exit(-1)` rather than spinning, so
+//!   that QEMU exits cleanly when a panicking test triggers an abort exception.
+//!
+//! Enable this feature when running under QEMU. Do not enable it for
+//! production builds targeting real hardware, where semihosting is not
+//! available.
+//!
+//! Implies the [`std`](#std) feature.
 //!
 //! # Minimum Supported Rust Version (MSRV)
 //!
@@ -186,19 +204,26 @@ pub fn soft_reset() -> ! {
     }
 }
 
-/// Performs a soft reset.
-///
-/// Executed if an exit point is reached and the exit handler has not been overridden.
+/// Executed when an exit point is reached and the exit handler has not been overridden.
 #[unsafe(no_mangle)]
 extern "C" fn __default_exit_handler() {
     soft_reset()
 }
 
-/// Executes a busy-wait spin-loop.
+/// Executed when an exception occurs and the specific exception handler has not been overridden.
 ///
-/// Executed if an exception occurs and the specific exception handler has not been overridden.
+/// With the `semihosting` feature, calls `_exit(-1)` so that QEMU exits cleanly (e.g., when a
+/// panicking test triggers an abort exception). Without it, executes a busy-wait spin-loop.
 #[unsafe(no_mangle)]
-extern "C" fn __default_handler() {
+extern "C" fn __default_handler() -> ! {
+    #[cfg(feature = "semihosting")]
+    {
+        unsafe extern "C" {
+            fn _exit(status: i32) -> !;
+        }
+        unsafe { _exit(-1) }
+    }
+    #[cfg(not(feature = "semihosting"))]
     loop {
         core::hint::spin_loop();
     }

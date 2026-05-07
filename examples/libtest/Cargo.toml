@@ -6,3 +6,6 @@ publish = false
 
 [dependencies]
 adacore-zynqmp = { path = "../../zynqmp", features = ["std"] }
+
+[dev-dependencies]
+adacore-zynqmp = { path = "../../zynqmp", features = ["semihosting"] }

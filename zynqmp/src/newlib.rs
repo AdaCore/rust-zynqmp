@@ -4,12 +4,42 @@ use core::{arch::asm, ffi::c_long, sync::atomic::AtomicUsize};
 
 use embedded_io::Write;
 
-use crate::{soft_reset, uart};
+#[cfg(not(feature = "semihosting"))]
+use crate::soft_reset;
+use crate::uart;
 
-/// Performs a soft reset.
+/// Terminates execution.
+///
+/// With the `semihosting` feature, uses a semihosting `SYS_EXIT` call so that
+/// QEMU exits cleanly. Without it, performs a soft reset.
 #[unsafe(no_mangle)]
-pub extern "C" fn _exit(_status: i32) -> ! {
-    soft_reset()
+pub extern "C" fn _exit(status: i32) -> ! {
+    #[cfg(feature = "semihosting")]
+    {
+        const SYS_EXIT: usize = 0x18;
+        const ADP_STOPPED_APPLICATION_EXIT: usize = 0x20026;
+        const ADP_STOPPED_RUN_TIME_ERROR: usize = 0x20023;
+
+        let reason = if status == 0 {
+            ADP_STOPPED_APPLICATION_EXIT
+        } else {
+            ADP_STOPPED_RUN_TIME_ERROR
+        };
+
+        unsafe {
+            asm!(
+                "hlt #0xf000",
+                in("x0") SYS_EXIT,
+                in("x1") reason,
+                options(noreturn)
+            );
+        }
+    }
+    #[cfg(not(feature = "semihosting"))]
+    {
+        let _ = status;
+        soft_reset()
+    }
 }
 
 /// Performs a soft reset.
