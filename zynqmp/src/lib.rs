@@ -122,7 +122,12 @@
 //!   kills it. Enable the [`semihosting`](#semihosting) feature to make QEMU
 //!   exit cleanly instead.
 //!
-//! Requires GNAT Pro for Rust 26 or newer.
+//! Requires GNAT Pro for Rust 26 or newer, since stable Rust does not ship
+//! `std` support for `aarch64-unknown-none`. GNAT Pro for Rust 27 or newer is
+//! needed for correct timing values: the newlib PAL timing implementation in 27
+//! reports durations with microsecond precision, while earlier versions compile
+//! but produce coarse or incorrect timing in `Instant`-based measurements such
+//! as libtest's per-test durations.
 //!
 //! ## `semihosting`
 //!

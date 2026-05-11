@@ -1,9 +1,11 @@
 
-running 2 tests
+running 4 tests
 test tests::hashmap_insert_and_lookup ... ok
+test tests::instant_elapsed_matches_hardware_counter ... ok
+test tests::instant_measures_elapsed_time ... ok
 test tests::vec_grows_across_reallocations ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
 
 running 0 tests

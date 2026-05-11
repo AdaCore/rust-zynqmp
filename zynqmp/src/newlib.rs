@@ -102,23 +102,36 @@ pub extern "C" fn sbrk(nbytes: i32) -> *mut u8 {
 
 /// Provides timing information.
 ///
-/// The timing information is measured in seconds. On Linux systems, time is measured in clock
-/// ticks and applications use sysconf(_SC_CLK_TCK) to determine the number of clock ticks per
-/// second. As Rust's libc binding assumes a default value of 2 for Linux-like systems, we use this
-/// value to adjust the returned time accordingly.
+/// The value written to `tms_utime` (and returned) is the elapsed time in
+/// microseconds. This is a convention shared with the Rust standard library's
+/// newlib PAL, whose `Instant::now()` interprets `clock()` as microseconds via
+/// `Duration::from_micros(clk)`. Newlib's `clock()` returns the sum of the
+/// four `tms` fields without scaling, so by zeroing the other three fields
+/// here the microsecond value flows through unchanged.
+///
+/// This convention is independent of newlib's `CLOCKS_PER_SEC` macro, which
+/// may differ from 1_000_000 on this target. The Rust call chain
+/// (`Instant::now()` -> `clock()` -> `times()`) is internally consistent at
+/// microsecond resolution, but C code that calls `clock()` and divides by
+/// `CLOCKS_PER_SEC` to obtain seconds will compute the wrong result whenever
+/// the macro disagrees with the microsecond convention. This crate is not
+/// currently usable for accurate POSIX-conforming timing from C.
 #[unsafe(no_mangle)]
 pub extern "C" fn times(buf: *mut tms) -> c_long {
-    const _SC_CLK_TCK: u64 = 2;
-    let Ok(time) = (cntvct() * _SC_CLK_TCK / cntfrq()).try_into() else {
+    const MICROS_PER_SEC: u128 = 1_000_000;
+
+    // u128 avoids overflow in the intermediate product.
+    let ticks = (cntvct() as u128) * MICROS_PER_SEC / (cntfrq() as u128);
+    let Ok(ticks) = c_long::try_from(ticks) else {
         return -1;
     };
     unsafe {
-        (*buf).tms_utime = time;
+        (*buf).tms_utime = ticks;
         (*buf).tms_stime = 0;
         (*buf).tms_cutime = 0;
         (*buf).tms_cstime = 0;
     }
-    time
+    ticks
 }
 
 #[repr(C)]
