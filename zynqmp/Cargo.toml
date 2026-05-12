@@ -31,3 +31,4 @@ qemu-exit = "3.0.2"
 
 [features]
 std = []
+semihosting = ["std"]

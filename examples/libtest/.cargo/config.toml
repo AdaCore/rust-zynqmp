@@ -1,0 +1,3 @@
+[target.aarch64-unknown-none]
+rustflags = ["-C", "link-arg=-Tlink.x"]
+runner = "qemu-system-aarch64 -machine xlnx-zcu102,secure=on,virtualization=on -m 2G -nographic -no-reboot -semihosting-config enable=on,target=native -kernel"

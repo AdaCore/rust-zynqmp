@@ -91,8 +91,60 @@
 //!
 //! ## `std`
 //!
-//! Provides limited support for `std` based on [Newlib](https://www.sourceware.org/newlib/).
-//! Requires GNAT Pro for Rust 26 or newer.
+//! Provides limited support for `std` based on [Newlib](https://www.sourceware.org/newlib/),
+//! including support for `cargo test`:
+//!
+//! ```no_run
+//! use adacore_zynqmp as _;
+//!
+//! #[cfg(test)]
+//! mod tests {
+//!     #[test]
+//!     fn it_works() {
+//!         assert_eq!(2 + 2, 4);
+//!     }
+//! }
+//! ```
+//!
+//! ### Limitations
+//!
+//! Panics on this target call `abort()` rather than unwinding the stack, which
+//! has two consequences:
+//!
+//! - `#[should_panic]` cannot confirm an expected panic: when a
+//!   `#[should_panic]` test actually panics, the abort terminates the whole
+//!   test binary and the harness never observes the panic. A `#[should_panic]`
+//!   test that does *not* panic is still reported as a failure correctly,
+//!   since the harness only needs to observe a normal return.
+//! - An unexpected panic in any test aborts the entire test binary; results
+//!   for subsequent tests are lost. On QEMU, `abort()` triggers a soft reset
+//!   which QEMU may not handle, causing the process to hang until the runner
+//!   kills it. Enable the [`semihosting`](#semihosting) feature to make QEMU
+//!   exit cleanly instead.
+//!
+//! Requires GNAT Pro for Rust 26 or newer, since stable Rust does not ship
+//! `std` support for `aarch64-unknown-none`. GNAT Pro for Rust 27 or newer is
+//! needed for correct timing values: the newlib PAL timing implementation in 27
+//! reports durations with microsecond precision, while earlier versions compile
+//! but produce coarse or incorrect timing in `Instant`-based measurements such
+//! as libtest's per-test durations.
+//!
+//! ## `semihosting`
+//!
+//! Enables clean QEMU termination via semihosting, which is useful for
+//! `cargo test` where a hanging process would otherwise require a timeout to
+//! recover from. Specifically:
+//!
+//! - [`_exit`](https://www.man7.org/linux/man-pages/man3/exit.3.html) terminates
+//!   via a semihosting `SYS_EXIT` call rather than a soft reset.
+//! - The default exception handler calls `_exit(-1)` rather than spinning, so
+//!   that QEMU exits cleanly when a panicking test triggers an abort exception.
+//!
+//! Enable this feature when running under QEMU. Do not enable it for
+//! production builds targeting real hardware, where semihosting is not
+//! available.
+//!
+//! Implies the [`std`](#std) feature.
 //!
 //! # Minimum Supported Rust Version (MSRV)
 //!
@@ -157,19 +209,26 @@ pub fn soft_reset() -> ! {
     }
 }
 
-/// Performs a soft reset.
-///
-/// Executed if an exit point is reached and the exit handler has not been overridden.
+/// Executed when an exit point is reached and the exit handler has not been overridden.
 #[unsafe(no_mangle)]
 extern "C" fn __default_exit_handler() {
     soft_reset()
 }
 
-/// Executes a busy-wait spin-loop.
+/// Executed when an exception occurs and the specific exception handler has not been overridden.
 ///
-/// Executed if an exception occurs and the specific exception handler has not been overridden.
+/// With the `semihosting` feature, calls `_exit(-1)` so that QEMU exits cleanly (e.g., when a
+/// panicking test triggers an abort exception). Without it, executes a busy-wait spin-loop.
 #[unsafe(no_mangle)]
-extern "C" fn __default_handler() {
+extern "C" fn __default_handler() -> ! {
+    #[cfg(feature = "semihosting")]
+    {
+        unsafe extern "C" {
+            fn _exit(status: i32) -> !;
+        }
+        unsafe { _exit(-1) }
+    }
+    #[cfg(not(feature = "semihosting"))]
     loop {
         core::hint::spin_loop();
     }

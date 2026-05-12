@@ -1,10 +1,9 @@
 #![warn(clippy::pedantic)]
 
-use std::{
-    env, error, fs,
-    io::{Read, Write},
-    path, process, thread, time,
-};
+use std::{env, error, fs, io::Write, path, process, time};
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt as _;
 
 use clap::{Parser, Subcommand};
 use wait_timeout::ChildExt;
@@ -21,6 +20,7 @@ const RUNNERS: &[(&str, &str)] = &[
     ),
 ];
 const EXAMPLE_FEATURES: &[(&str, &str)] = &[("newlib", "std")];
+const EXAMPLE_CRATES: &[&str] = &["libtest"];
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -152,34 +152,28 @@ fn run_single_test(
         };
     }
 
-    let mut child = process::Command::new(cargo)
-        .arg("run")
-        .arg("--target")
-        .arg("aarch64-unknown-none")
-        .arg("--example")
-        .arg(example)
-        .arg("--features")
-        .arg(features)
-        .current_dir("zynqmp")
-        .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
-        .stdout(process::Stdio::piped())
-        .spawn()
-        .expect("failed to spawn example");
-
-    let mut child_stdout = child.stdout.take().expect("failed to take stdout");
-    let reader = thread::spawn(move || {
-        let mut buf = String::new();
-        child_stdout.read_to_string(&mut buf).map(|_| buf)
-    });
-
-    let (run_status, timed_out) = if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
-        (status, false)
-    } else {
-        child.kill().expect("failed to kill example");
-        (child.wait().expect("failed to wait for example"), true)
+    let stdout_path = env::temp_dir().join(format!("xtask-{}.stdout", process::id()));
+    let mut child = {
+        let mut cmd = process::Command::new(cargo);
+        cmd.arg("run")
+            .arg("--target")
+            .arg("aarch64-unknown-none")
+            .arg("--example")
+            .arg(example)
+            .arg("--features")
+            .arg(features)
+            .current_dir("zynqmp")
+            .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+            .stdin(process::Stdio::null())
+            .stdout(fs::File::create(&stdout_path).expect("failed to create stdout capture file"));
+        #[cfg(unix)]
+        cmd.process_group(0);
+        cmd.spawn().expect("failed to spawn example")
     };
 
-    let captured_stdout = reader.join().unwrap().unwrap_or_default();
+    let (run_status, timed_out) = wait_and_kill(&mut child);
+    let captured_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
+    fs::remove_file(&stdout_path).ok();
 
     let stdout_path = path::Path::new("zynqmp/examples").join(format!("{example}.stdout"));
     let expected_stdout = stdout_path
@@ -208,6 +202,57 @@ fn run_single_test(
     }
 }
 
+fn run_crate_test(
+    cargo: &std::ffi::OsStr,
+    crate_name: &str,
+    crate_dir: &path::Path,
+    runner: &str,
+) -> TestOutcome {
+    let stdout_path = env::temp_dir().join(format!("xtask-{}.stdout", process::id()));
+    let mut child = {
+        let mut cmd = process::Command::new(cargo);
+        cmd.arg("test")
+            .arg("--target")
+            .arg("aarch64-unknown-none")
+            .arg("--package")
+            .arg(format!("zynqmp-{crate_name}"))
+            .current_dir(crate_dir)
+            .env("CARGO_TARGET_AARCH64_UNKNOWN_NONE_RUNNER", runner)
+            .stdin(process::Stdio::null())
+            .stdout(fs::File::create(&stdout_path).expect("failed to create stdout capture file"));
+        #[cfg(unix)]
+        cmd.process_group(0);
+        cmd.spawn().expect("failed to spawn test")
+    };
+
+    let (run_status, timed_out) = wait_and_kill(&mut child);
+    let captured_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
+    fs::remove_file(&stdout_path).ok();
+
+    let stdout_path = path::Path::new("examples").join(format!("{crate_name}.stdout"));
+    let expected_stdout = fs::read_to_string(&stdout_path)
+        .unwrap_or_else(|_| panic!("{} not found", stdout_path.display()));
+
+    let normalized = normalize_output(&captured_stdout);
+    let passed = normalized == expected_stdout;
+    let reason = if passed {
+        None
+    } else if timed_out {
+        Some("timeout".to_string())
+    } else if let Some(code) = run_status.code() {
+        Some(format!("exit code {code}"))
+    } else {
+        Some("terminated".to_string())
+    };
+
+    TestOutcome {
+        passed,
+        reason,
+        expected_stdout: Some(expected_stdout),
+        captured_stdout: normalized,
+    }
+}
+
 fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error>> {
     let cargo = env::var_os("CARGO").unwrap();
     let examples = discover_examples(&cargo);
@@ -218,7 +263,7 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     let mut num_failed = 0;
 
     let mut log_file = LogFile::new(log_file_path)?;
-    log_file.start_test_suite(examples.len() * RUNNERS.len())?;
+    log_file.start_test_suite((examples.len() + EXAMPLE_CRATES.len()) * RUNNERS.len())?;
 
     for example in &examples {
         let features = EXAMPLE_FEATURES
@@ -228,24 +273,30 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
 
         for (variant, runner) in RUNNERS {
             print!("test {example} ({variant}) ... ");
-
             let outcome = run_single_test(&cargo, example, features, runner);
+            record_outcome(
+                &outcome,
+                &format!("[example] {example}#{variant}"),
+                &mut num_passed,
+                &mut num_failed,
+                &mut log_file,
+            )?;
+        }
+    }
 
-            if outcome.passed {
-                println!("ok");
-                num_passed += 1;
-            } else {
-                println!("FAILED ({})", outcome.reason.as_deref().unwrap_or(""));
-                num_failed += 1;
-            }
-            if outcome.expected_stdout.is_some() && !outcome.passed {
-                println!("--- expected stdout ---");
-                print!("{}", outcome.expected_stdout.as_deref().unwrap_or(""));
-                println!("--- actual stdout ---");
-            }
-            print!("{}", outcome.captured_stdout);
+    for crate_name in EXAMPLE_CRATES {
+        let crate_dir = path::Path::new("examples").join(crate_name);
 
-            log_file.add_test_result(&format!("[example] {example}#{variant}"), outcome.passed)?;
+        for (variant, runner) in RUNNERS {
+            print!("test {crate_name} ({variant}) ... ");
+            let outcome = run_crate_test(&cargo, crate_name, &crate_dir, runner);
+            record_outcome(
+                &outcome,
+                &format!("[example-crate] {crate_name}#{variant}"),
+                &mut num_passed,
+                &mut num_failed,
+                &mut log_file,
+            )?;
         }
     }
 
@@ -262,4 +313,66 @@ fn test(log_file_path: Option<path::PathBuf>) -> Result<(), Box<dyn error::Error
     }
 
     Ok(())
+}
+
+fn wait_and_kill(child: &mut process::Child) -> (process::ExitStatus, bool) {
+    if let Some(status) = child.wait_timeout(TIMEOUT).unwrap() {
+        (status, false)
+    } else {
+        #[cfg(unix)]
+        unsafe {
+            libc::kill(-child.id().cast_signed(), libc::SIGKILL);
+        }
+        // On non-Unix platforms, only the direct child process is killed.
+        // Grandchildren (e.g. QEMU spawned by the runner) may keep running.
+        // The Unix fix (killing the process group) has no direct equivalent on
+        // Windows. The proper solution there is a Job Object with
+        // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, which requires unsafe Windows
+        // API calls and the `windows-sys` dependency.
+        #[cfg(not(unix))]
+        child.kill().expect("failed to kill child");
+        (child.wait().expect("failed to wait for child"), true)
+    }
+}
+
+fn record_outcome(
+    outcome: &TestOutcome,
+    log_name: &str,
+    num_passed: &mut usize,
+    num_failed: &mut usize,
+    log_file: &mut LogFile,
+) -> Result<(), Box<dyn error::Error>> {
+    if outcome.passed {
+        println!("ok");
+        *num_passed += 1;
+        if outcome.expected_stdout.is_none() {
+            print!("{}", outcome.captured_stdout);
+        }
+    } else {
+        println!("FAILED ({})", outcome.reason.as_deref().unwrap_or(""));
+        *num_failed += 1;
+        if let Some(expected) = &outcome.expected_stdout {
+            let diff = similar::TextDiff::from_lines(expected.as_str(), &outcome.captured_stdout);
+            print!("{}", diff.unified_diff().header("expected", "actual"));
+        } else {
+            print!("{}", outcome.captured_stdout);
+        }
+    }
+    log_file.add_test_result(log_name, outcome.passed)
+}
+
+fn normalize_output(output: &str) -> String {
+    let normalized = output
+        .lines()
+        .map(|line| match line.find("; finished in ") {
+            Some(pos) => &line[..pos],
+            None => line,
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if output.ends_with('\n') {
+        normalized.trim_end_matches('\n').to_string() + "\n"
+    } else {
+        normalized
+    }
 }
