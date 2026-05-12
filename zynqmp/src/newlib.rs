@@ -117,7 +117,7 @@ pub extern "C" fn sbrk(nbytes: i32) -> *mut u8 {
 /// the macro disagrees with the microsecond convention. This crate is not
 /// currently usable for accurate POSIX-conforming timing from C.
 #[unsafe(no_mangle)]
-pub extern "C" fn times(buf: *mut tms) -> c_long {
+extern "C" fn times(buf: *mut tms) -> c_long {
     const MICROS_PER_SEC: u128 = 1_000_000;
 
     // u128 avoids overflow in the intermediate product.
@@ -136,11 +136,11 @@ pub extern "C" fn times(buf: *mut tms) -> c_long {
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
-pub struct tms {
-    pub tms_utime: c_long,
-    pub tms_stime: c_long,
-    pub tms_cutime: c_long,
-    pub tms_cstime: c_long,
+struct tms {
+    tms_utime: c_long,
+    tms_stime: c_long,
+    tms_cutime: c_long,
+    tms_cstime: c_long,
 }
 
 #[inline]
