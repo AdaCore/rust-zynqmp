@@ -29,6 +29,9 @@ include:
     inputs:
       anod-args: run test
       needs: []
+  - component: $CI_SERVER_FQDN/it/gitlab-templates/gitleaks@~latest
+    inputs:
+      stage: check
 
 # Publish
 publish:
